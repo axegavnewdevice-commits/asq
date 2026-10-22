@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PWA check</title>
+<style>body{font:16px/1.5 system-ui;margin:1rem;max-width:36rem}li{margin:.4rem 0;list-style:none}.ok{color:#0a7a2f}.bad{color:#c0201a}code{background:#eee;padding:0 .25em}</style></head>
+<body><h1>PWA self-check</h1><ul id="out"></ul>
+<script>
+const out=document.getElementById('out');
+const add=(ok,t)=>{const li=document.createElement('li');li.className=ok?'ok':'bad';li.textContent=(ok?'✔ ':'✘ ')+t;out.appendChild(li)};
+(async()=>{
+  add(location.protocol==='https:'||location.hostname==='localhost','Secure origin: '+location.origin);
+  try{
+    const r=await fetch('./manifest.webmanifest',{credentials:'include'});
+    add(r.ok,'manifest.webmanifest -> HTTP '+r.status+' ('+(r.headers.get('content-type')||'?')+')');
+    const m=await r.json();
+    add(m.display==='standalone','display = '+m.display);
+    for(const i of m.icons){const ir=await fetch(new URL(i.src,r.url));add(ir.ok,i.src+' ('+i.sizes+', '+i.purpose+') -> HTTP '+ir.status)}
+  }catch(e){add(false,'manifest failed: '+e.message)}
+  try{
+    const s=await fetch('./sw.js');add(s.ok,'sw.js -> HTTP '+s.status);
+    const reg=await navigator.serviceWorker.getRegistration('./');
+    add(!!reg&&!!reg.active,'service worker active: '+(reg&&reg.active?reg.active.state:'no (open the game page first, then reload this page)'));
+  }catch(e){add(false,'service worker: '+e.message)}
+  add(matchMedia('(display-mode: standalone)').matches,'Running as installed app (only ✔ after install)');
+})();
+</script></body></html>
